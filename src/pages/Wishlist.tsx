@@ -8,13 +8,15 @@ import { Navbar } from '@/components/layout/Navbar';
 import { Footer } from '@/components/layout/Footer';
 
 const Wishlist = () => {
-  const { user, isAuthenticated } = useAuth();
+  const { user, isAuthenticated, loading } = useAuth(); 
+
   const { toast } = useToast();
   const [favorites, setFavorites] = useState<Library[]>([]);
 
   useEffect(() => {
     const loadFavorites = async () => {
-      if (!user) return;
+      if (!user || loading) return; 
+
 
       const allLibraries = await fetchAllLibraries();
       const favIds = await getFavoriteLibraryIds(user.uid);
@@ -23,7 +25,8 @@ const Wishlist = () => {
     };
 
     loadFavorites();
-  }, [user]);
+  }, [user, loading]); 
+
 
   const handleRemoveFavorite = async (libraryId: string) => {
     if (!user) return;

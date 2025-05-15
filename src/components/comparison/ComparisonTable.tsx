@@ -1,4 +1,4 @@
-// src/components/comparison/ComparisonTable.tsx
+
 import React from 'react';
 import { Library } from '@/lib/type';
 

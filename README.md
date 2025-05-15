@@ -1,69 +1,123 @@
-# Welcome to your  project
+# 📚 Librena - Your Software Library Explorer
 
-## Project info
+Librena is a comprehensive web application that helps developers discover, compare, and manage software libraries for their projects. With a beautiful UI, personalized user features, and seamless project organization, Librena makes it easier than ever to choose the right libraries for your development needs.
 
-**URL**: https://.dev/projects/31861ef8-ed42-4b32-8284-cc1e31fc2a25
+---
 
-## How can I edit this code?
+## 🌐 Live Website
 
-There are several ways of editing your application.
+👉 **[Visit Librena](https://softlib-1b4db.web.app)**
 
-**Use **
+---
 
-Simply visit the [ Project](https://.dev/projects/31861ef8-ed42-4b32-8284-cc1e31fc2a25) and start prompting.
+## 🚀 Tech Stack
 
-Changes made via  will be committed automatically to this repo.
+Librena is built using modern web technologies:
 
-**Use your preferred IDE**
+- ⚛️ **React** (with SWC for fast builds)
+- ⚡ **Vite** (blazing fast dev environment)
+- 💬 **Shadcn-UI** + **Tailwind CSS** (modern and clean UI)
+- 🔥 **Firebase** (Authentication, Firestore, Hosting, Functions)
+- ☁️ **TypeScript** (robust typing and cleaner code)
+- 🍞 **Sonner** (beautiful toast notifications)
 
-If you want to work locally using your own IDE, you can clone this repo and push changes. Pushed changes will also be reflected in .
+---
 
-The only requirement is having Node.js & npm installed - [install with nvm](https://github.com/nvm-sh/nvm#installing-and-updating)
+## 🧠 Features
 
-Follow these steps:
+- 🔍 Explore a curated database of open-source libraries
+- 🛠️ Add libraries to personal projects
+- 💾 Wishlist functionality with favorites
+- 🔁 Library comparison tool
+- 🔐 Firebase Authentication (email-based)
+- 📥 PDF export of project libraries
+- 📱 Mobile-responsive and user-friendly design
+- 🎨 Filter, search, and sort libraries by category, stars, date, size, and more
 
-```sh
-# Step 1: Clone the repository using the project's Git URL.
-git clone <YOUR_GIT_URL>
+---
 
-# Step 2: Navigate to the project directory.
-cd <YOUR_PROJECT_NAME>
+## 🛠️ Project Setup (Local Development)
 
-# Step 3: Install the necessary dependencies.
-npm i
+To get started locally, make sure you have [Node.js](https://nodejs.org/en/) and [npm](https://www.npmjs.com/) installed.
 
-# Step 4: Start the development server with auto-reloading and an instant preview.
+```bash
+# Clone the repo
+git clone <your_repo_url>
+cd <your_project_name>
+
+# Install dependencies
+npm install
+
+# Start the development server
 npm run dev
 ```
 
-**Edit a file directly in GitHub**
+---
 
-- Navigate to the desired file(s).
-- Click the "Edit" button (pencil icon) at the top right of the file view.
-- Make your changes and commit the changes.
+## 🔐 Firebase Deployment
 
-**Use GitHub Codespaces**
+This project is deployed using Firebase Hosting + Functions.
 
-- Navigate to the main page of your repository.
-- Click on the "Code" button (green button) near the top right.
-- Select the "Codespaces" tab.
-- Click on "New codespace" to launch a new Codespace environment.
-- Edit files directly within the Codespace and commit and push your changes once you're done.
+```bash
+# Build your project
+npm run build
 
-## What technologies are used for this project?
+# Deploy to Firebase
+firebase deploy
+```
 
-This project is built with .
+Make sure your `firebase.json` and `vite.config.ts` are properly configured. For Firebase Hosting:
 
-- Vite
-- TypeScript
-- React
-- shadcn-ui
-- Tailwind CSS
+```json
+"hosting": {
+  "public": "dist",
+  "rewrites": [
+    {
+      "source": "**",
+      "destination": "/index.html"
+    }
+  ]
+}
+```
 
-## How can I deploy this project?
+In `vite.config.ts`:
 
-Simply open [](https://.dev/projects/31861ef8-ed42-4b32-8284-cc1e31fc2a25) and click on Share -> Publish.
+```ts
+base: "./",
+```
 
-## I want to use a custom domain - is that possible?
+---
 
-We don't support custom domains (yet). If you want to deploy your project under your own domain then we recommend using Netlify. Visit our docs for more details: [Custom domains](https://docs..dev/tips-tricks/custom-domain/)
+## 📁 Project Structure
+
+```
+src/
+│
+├── components/     # Reusable UI components (Navbar, Footer, Forms)
+├── context/        # Authentication context
+├── lib/            # Firestore functions and utilities
+├── pages/          # Page components (Home, Login, Register, Projects)
+├── hooks/          # Custom hooks (e.g., toast system)
+├── assets/         # Images and static content
+├── App.tsx         # Main App Router
+└── main.tsx        # Entry point
+```
+
+---
+
+## 📜 License
+
+This project is a **UMBC Graduate Capstone** project submitted by **Pavan Vishnu Varma Namburi** for the MPS in Software Engineering program.
+
+---
+
+## 📩 Contact
+
+- Email: [vishnuvarma63012@gmail.com](mailto:vishnuvarma63012@gmail.com)
+- Project Website: [https://softlib-1b4db.web.app](https://softlib-1b4db.web.app)
+
+---
+
+## 🤝 Acknowledgements
+
+Special thanks to the faculty and reviewers at UMBC, and to all open-source contributors whose libraries power this project.

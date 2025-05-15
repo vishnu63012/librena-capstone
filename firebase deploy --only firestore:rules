@@ -1,0 +1,45 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Optional: Allow admins full access
+    match /{document=**} {
+      allow read, write: if request.auth.token.admin == true;
+    }
+
+    // User profile
+    match /users/{userId} {
+      allow read, write: if request.auth != null && request.auth.uid == userId;
+    }
+
+    // Public library and category read access
+    match /libraries/{libraryId} {
+      allow read: if true;
+      allow write: if request.auth.token.admin == true;
+    }
+
+    match /categories/{categoryId} {
+      allow read: if true;
+    }
+
+    // User's projects
+    match /users/{userId}/projects/{projectId} {
+      allow read, write: if request.auth != null && request.auth.uid == userId;
+    }
+
+    // User favorites
+    match /users/{userId}/favorites/{favId} {
+      allow read, write: if request.auth != null && request.auth.uid == userId;
+    }
+
+    // Compare list
+    match /users/{userId}/compareList/{itemId} {
+      allow read, write: if request.auth != null && request.auth.uid == userId;
+    }
+
+    // Invitations (optional)
+    match /users/{userId}/invitations/{inviteId} {
+      allow read, write: if request.auth != null && request.auth.uid == userId;
+    }
+  }
+}

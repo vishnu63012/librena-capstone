@@ -9,7 +9,7 @@ import { Navigate } from 'react-router-dom';
 const Login = () => {
   const { isAuthenticated } = useAuth();
   
-  // If user is already authenticated, redirect to home page
+  
   if (isAuthenticated) {
     return <Navigate to="/" />;
   }

@@ -31,13 +31,32 @@ const AdminUploadJson = () => {
         const json = JSON.parse(event.target?.result as string);
         if (!Array.isArray(json)) throw new Error("JSON must be an array of libraries");
 
-        const validLibs = json.filter((lib: Library) => lib.id && lib.name); // Filter valid entries
+        // Filter out invalid libraries
+        const validLibs = json.filter(
+          (lib: Library) =>
+            typeof lib.id === "string" &&
+            lib.id.trim() !== "" &&
+            typeof lib.name === "string" &&
+            lib.name.trim() !== ""
+        );
+
+        const skipped = json.length - validLibs.length;
+        if (skipped > 0) {
+          toast({
+            title: "⚠️ Some entries skipped",
+            description: `${skipped} entries were missing 'id' or 'name'.`,
+          });
+        }
+
         setLibraries(validLibs);
         setPreviewCount(validLibs.length);
         setJsonFileName(file.name);
       } catch (error: unknown) {
         const err = error as Error;
-        toast({ title: "❌ Failed to read file", description: err.message || "Invalid JSON" });
+        toast({
+          title: "❌ Failed to read file",
+          description: err.message || "Invalid JSON structure",
+        });
         resetState();
       }
     };
@@ -48,28 +67,36 @@ const AdminUploadJson = () => {
     if (!libraries.length) return;
 
     try {
-      const uploadPromises = libraries.map((lib) => {
-        if (!lib.id) return null;
-        return setDoc(doc(db, "libraries", lib.id), {
+      const uploadPromises = libraries.map((lib) =>
+        setDoc(doc(db, "libraries", lib.id), {
           ...lib,
           source: lib.source || "",
           last_updated: lib.last_updated || "",
           createdAt: serverTimestamp(),
-        });
-      });
+        })
+      );
 
-      await Promise.all(uploadPromises.filter(Boolean));
-      toast({ title: "✅ Libraries uploaded", description: `${libraries.length} libraries added to Firestore.` });
+      await Promise.all(uploadPromises);
+      toast({
+        title: "✅ Libraries uploaded",
+        description: `${libraries.length} libraries added to Firestore.`,
+      });
       resetState();
     } catch (err) {
-      toast({ title: "❌ Upload failed", description: "Check console for errors." });
-      console.error(err);
+      toast({
+        title: "❌ Upload failed",
+        description: "Check console for errors.",
+      });
+      console.error("Upload error:", err);
     }
   };
 
   const handleClear = () => {
     resetState();
-    toast({ title: "🧹 Cleared", description: "Upload state has been reset." });
+    toast({
+      title: "🧹 Cleared",
+      description: "Upload state has been reset.",
+    });
   };
 
   return (
@@ -96,7 +123,11 @@ const AdminUploadJson = () => {
       )}
 
       <div className="flex gap-4">
-        <Button className="bg-blue-600 text-white" onClick={handleUploadToFirestore}>
+        <Button
+          className="bg-blue-600 text-white"
+          onClick={handleUploadToFirestore}
+          disabled={previewCount === 0}
+        >
           Add {previewCount} Libraries
         </Button>
         <Button className="bg-gray-500 text-white" onClick={handleClear}>

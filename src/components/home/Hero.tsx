@@ -99,11 +99,11 @@ export const Hero = () => {
 
           <div className="mt-16 grid grid-cols-2 sm:grid-cols-4 gap-8">
             <div className="flex flex-col items-center">
-              <span className="text-3xl font-bold text-primary">10,000+</span>
+              <span className="text-3xl font-bold text-primary">2,000+</span>
               <span className="text-sm text-muted-foreground">Libraries</span>
             </div>
             <div className="flex flex-col items-center">
-              <span className="text-3xl font-bold text-primary">50+</span>
+              <span className="text-3xl font-bold text-primary">10+</span>
               <span className="text-sm text-muted-foreground">Categories</span>
             </div>
             <div className="flex flex-col items-center">

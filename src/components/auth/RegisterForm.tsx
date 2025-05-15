@@ -7,7 +7,8 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { useAuth } from '@/context/AuthContext';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { useToast } from '@/hooks/use-toast';
+import { toast } from 'sonner'; 
+import { FirebaseError } from 'firebase/app';
 
 export const RegisterForm = () => {
   const [firstName, setFirstName] = useState('');
@@ -22,32 +23,34 @@ export const RegisterForm = () => {
   const [formError, setFormError] = useState<string | null>(null);
 
   const { register } = useAuth();
-  const { toast } = useToast();
   const navigate = useNavigate();
 
-  // Real-time validation
+  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
   useEffect(() => {
-    const newErrors: Record<string, string> = {};
+    setErrors((prevErrors) => {
+      const newErrors = { ...prevErrors };
 
-    if (email && !email.includes('@')) {
-      newErrors.email = 'Enter a valid email address';
-    } else {
-      delete errors.email;
-    }
+      if (email && !emailRegex.test(email)) {
+        newErrors.email = 'Enter a valid email address';
+      } else {
+        delete newErrors.email;
+      }
 
-    if (password && (password.length < 8 || (!password.includes('@') && !password.includes('#')))) {
-      newErrors.password = 'Password must be 8+ characters & include @ or #';
-    } else {
-      delete errors.password;
-    }
+      if (password && (password.length < 8 || (!password.includes('@') && !password.includes('#')))) {
+        newErrors.password = 'Password must be 8+ characters and include @ or #';
+      } else {
+        delete newErrors.password;
+      }
 
-    if (confirmPassword && password !== confirmPassword) {
-      newErrors.confirmPassword = 'Passwords do not match';
-    } else {
-      delete errors.confirmPassword;
-    }
+      if (confirmPassword && password !== confirmPassword) {
+        newErrors.confirmPassword = 'Passwords do not match';
+      } else {
+        delete newErrors.confirmPassword;
+      }
 
-    setErrors((prev) => ({ ...prev, ...newErrors }));
+      return newErrors;
+    });
   }, [email, password, confirmPassword]);
 
   const validateForm = () => {
@@ -56,19 +59,20 @@ export const RegisterForm = () => {
     if (!firstName) newErrors.firstName = 'First name is required';
     if (!lastName) newErrors.lastName = 'Last name is required';
     if (!email) newErrors.email = 'Email is required';
-    if (!email.includes('@')) newErrors.email = 'Email is invalid';
+    else if (!emailRegex.test(email)) newErrors.email = 'Invalid email address';
+
     if (!password) newErrors.password = 'Password is required';
-    if (password.length < 8 || (!password.includes('@') && !password.includes('#')))
-      newErrors.password = 'Password must be 8+ characters & include @ or #';
-    if (password !== confirmPassword)
-      newErrors.confirmPassword = 'Passwords do not match';
+    else if (password.length < 8 || (!password.includes('@') && !password.includes('#')))
+      newErrors.password = 'Password must be 8+ characters and include @ or #';
+
+    if (password !== confirmPassword) newErrors.confirmPassword = 'Passwords do not match';
     if (!agreeTerms) newErrors.agreeTerms = 'You must agree to the terms';
 
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setFormError(null);
 
@@ -79,31 +83,28 @@ export const RegisterForm = () => {
       const success = await register({ firstName, lastName, email, password });
 
       if (success) {
-        toast({
-          title: '🎉 Sign up successful!',
-          description: 'Welcome to Librena. Redirecting...',
-        });
+        toast.success('Registration successful! Redirecting to Home...');
         navigate('/');
       }
-    } catch (error: unknown) {
+    }  catch (error: any) {
+      console.error(' Registration error:', error);
+    
+      const alreadyExistsMessage = 'This email is already registered. Please use another email or sign in.';
+    
       if (
-        typeof error === 'object' &&
-        error !== null &&
-        'code' in error &&
-        (error as { code: string }).code === 'auth/email-already-in-use'
+        error?.message === 'email-already-in-use' ||
+        (error instanceof FirebaseError && error.code === 'auth/email-already-in-use')
       ) {
-        toast({
-          title: '⚠️ Account already exists',
-          description: 'Please sign in with your existing account.',
-          variant: 'destructive',
-        });
-        setTimeout(() => {
-          navigate('/login');
-        }, 2000);
+        toast('This email is already registered. Please use another email or sign in.');
+
+        setEmail('');
+        setPassword('');
+        setConfirmPassword('');
       } else {
         setFormError('An unexpected error occurred. Please try again.');
       }
-    } finally {
+    }
+    finally {
       setIsLoading(false);
     }
   };
@@ -111,8 +112,9 @@ export const RegisterForm = () => {
   return (
     <Card className="w-full max-w-md mx-auto glass-card">
       <CardHeader>
-        <CardTitle className="text-center text-2xl">Create an account</CardTitle>
+        <CardTitle className="text-center text-2xl">Create an Account</CardTitle>
       </CardHeader>
+
       <CardContent>
         {formError && (
           <Alert variant="destructive" className="mb-4">
@@ -123,28 +125,24 @@ export const RegisterForm = () => {
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
-              <label htmlFor="firstName" className="text-sm font-medium">
-                First Name
-              </label>
+              <label htmlFor="firstName" className="text-sm font-medium">First Name</label>
               <Input
                 id="firstName"
-                placeholder="Enter your first name"
                 value={firstName}
                 onChange={(e) => setFirstName(e.target.value)}
+                placeholder="First name"
                 className={errors.firstName ? 'border-red-500' : ''}
               />
               {errors.firstName && <p className="text-red-500 text-xs">{errors.firstName}</p>}
             </div>
 
             <div className="space-y-2">
-              <label htmlFor="lastName" className="text-sm font-medium">
-                Last Name
-              </label>
+              <label htmlFor="lastName" className="text-sm font-medium">Last Name</label>
               <Input
                 id="lastName"
-                placeholder="Enter your last name"
                 value={lastName}
                 onChange={(e) => setLastName(e.target.value)}
+                placeholder="Last name"
                 className={errors.lastName ? 'border-red-500' : ''}
               />
               {errors.lastName && <p className="text-red-500 text-xs">{errors.lastName}</p>}
@@ -152,31 +150,27 @@ export const RegisterForm = () => {
           </div>
 
           <div className="space-y-2">
-            <label htmlFor="email" className="text-sm font-medium">
-              Email
-            </label>
+            <label htmlFor="email" className="text-sm font-medium">Email</label>
             <Input
               id="email"
               type="email"
-              placeholder="Enter your email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
+              placeholder="Enter your email"
               className={errors.email ? 'border-red-500' : ''}
             />
             {errors.email && <p className="text-red-500 text-xs">{errors.email}</p>}
           </div>
 
           <div className="space-y-2">
-            <label htmlFor="password" className="text-sm font-medium">
-              Password
-            </label>
+            <label htmlFor="password" className="text-sm font-medium">Password</label>
             <div className="relative">
               <Input
                 id="password"
                 type={showPassword ? 'text' : 'password'}
-                placeholder="Create a password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
+                placeholder="Create a password"
                 className={`pr-10 ${errors.password ? 'border-red-500' : ''}`}
               />
               <button
@@ -191,15 +185,13 @@ export const RegisterForm = () => {
           </div>
 
           <div className="space-y-2">
-            <label htmlFor="confirmPassword" className="text-sm font-medium">
-              Confirm Password
-            </label>
+            <label htmlFor="confirmPassword" className="text-sm font-medium">Confirm Password</label>
             <Input
               id="confirmPassword"
               type={showPassword ? 'text' : 'password'}
-              placeholder="Confirm your password"
               value={confirmPassword}
               onChange={(e) => setConfirmPassword(e.target.value)}
+              placeholder="Confirm password"
               className={errors.confirmPassword ? 'border-red-500' : ''}
             />
             {errors.confirmPassword && <p className="text-red-500 text-xs">{errors.confirmPassword}</p>}
@@ -212,25 +204,19 @@ export const RegisterForm = () => {
               onCheckedChange={(checked) => setAgreeTerms(checked as boolean)}
               className={errors.agreeTerms ? 'border-red-500' : ''}
             />
-            <div className="grid gap-1.5 leading-none">
-              <label htmlFor="agree" className="text-sm font-medium leading-none">
-                I agree to the{' '}
-                <Link to="/terms" className="text-blue-600 hover:underline">
-                  Terms of Service
-                </Link>{' '}
-                and{' '}
-                <Link to="/privacy" className="text-blue-600 hover:underline">
-                  Privacy Policy
-                </Link>
-              </label>
-              {errors.agreeTerms && <p className="text-red-500 text-xs">{errors.agreeTerms}</p>}
-            </div>
+            <label htmlFor="agree" className="text-sm">
+              I agree to the{' '}
+              <Link to="/legal?section=terms" className="text-blue-600 hover:underline">Terms of Service</Link>{' '}
+              and{' '}
+              <Link to="/legal?section=privacy" className="text-blue-600 hover:underline">Privacy Policy</Link>
+            </label>
           </div>
+          {errors.agreeTerms && <p className="text-red-500 text-xs">{errors.agreeTerms}</p>}
 
           <Button
             type="submit"
-            className="w-full bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white"
             disabled={isLoading}
+            className="w-full bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white"
           >
             {isLoading ? 'Creating account...' : 'Create account'}
           </Button>
@@ -238,12 +224,10 @@ export const RegisterForm = () => {
       </CardContent>
 
       <CardFooter className="flex flex-col justify-center border-t px-6 py-4 space-y-2">
-        <div className="text-center text-sm">
+        <p className="text-center text-sm">
           Already have an account?{' '}
-          <Link to="/login" className="text-blue-600 hover:underline">
-            Sign in
-          </Link>
-        </div>
+          <Link to="/login" className="text-blue-600 hover:underline">Sign in</Link>
+        </p>
       </CardFooter>
     </Card>
   );

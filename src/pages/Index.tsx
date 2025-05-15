@@ -9,7 +9,7 @@ import { ScrollText } from '@/components/home/ScrollText';
 import { Features } from '@/components/home/Features';
 import { LibraryCard } from '@/components/ui/LibraryCard';
 import { Button } from '@/components/ui/button';
-import { ChevronUp } from 'lucide-react';
+import { ChevronUp, AlertCircle } from 'lucide-react';
 import { Library } from '@/lib/type';
 import {
   fetchAllLibraries,
@@ -34,7 +34,7 @@ const Index = () => {
   const [showProjectPicker, setShowProjectPicker] = useState(false);
   const [categoryCounts, setCategoryCounts] = useState<{ [key: string]: number }>({});
 
-  const { isAuthenticated, user } = useAuth();
+  const { isAuthenticated, user, loading } = useAuth();
   const { toast } = useToast();
   const navigate = useNavigate();
 
@@ -43,23 +43,21 @@ const Index = () => {
       const libs = await fetchAllLibraries();
       setLibraries(libs);
       setFilteredLibraries(libs);
-
       const counts: { [key: string]: number } = {};
       for (const lib of libs) {
         if (!lib.category) continue;
         counts[lib.category] = (counts[lib.category] || 0) + 1;
       }
       setCategoryCounts(counts);
-
-      if (user) {
+      if (user && !loading) {
         const favIds = await getFavoriteLibraryIds(user.uid);
         setFavoriteIds(favIds);
         const projs = await getProjects(user.uid);
         setProjects(projs);
       }
     };
-    loadData();
-  }, [user]);
+    if (!loading) loadData();
+  }, [user, loading]);
 
   useEffect(() => {
     const handleScroll = () => setShowScrollButton(window.scrollY > 400);
@@ -90,23 +88,19 @@ const Index = () => {
     setTimeout(() => {
       let results = [...libraries];
       const q = query.toLowerCase();
-
       results = results.filter((lib) => {
         const name = (lib.name ?? '').toLowerCase();
         const matchesQuery = q === '' || name.startsWith(q);
         const matchesCategory = !cat || lib.category === cat;
         return matchesQuery && matchesCategory;
       });
-
       results.sort((a, b) => {
         const aDate = getDateValue(a.last_updated);
         const bDate = getDateValue(b.last_updated);
-
         const aStars = parseInt(a.stars || '0');
         const bStars = parseInt(b.stars || '0');
         const aSize = parseFloat(a.size || '0');
         const bSize = parseFloat(b.size || '0');
-
         if (sortBy === 'recent') return bDate - aDate;
         if (sortBy === 'stars') return bStars - aStars;
         if (sortBy === 'sizeAsc') return aSize - bSize;
@@ -115,7 +109,6 @@ const Index = () => {
         if (sortBy === 'nameDesc') return (b.name ?? '').localeCompare(a.name ?? '');
         return 0;
       });
-
       setFilteredLibraries(results);
       setIsSearching(false);
     }, 200);
@@ -123,11 +116,10 @@ const Index = () => {
 
   const handleSelectLibrary = (library: Library) => {
     const exists = selectedLibraries.find((lib) => lib.id === library.id);
-    setSelectedLibraries(
-      exists
-        ? selectedLibraries.filter((lib) => lib.id !== library.id)
-        : [...selectedLibraries, library].slice(0, 10)
-    );
+    const updated = exists
+      ? selectedLibraries.filter((lib) => lib.id !== library.id)
+      : [...selectedLibraries, library].slice(0, 10);
+    setSelectedLibraries(updated);
   };
 
   const handleAddToProject = async (projectId: string) => {
@@ -149,30 +141,18 @@ const Index = () => {
         <Hero />
         <ScrollText />
         <Features />
-
         <section id="libraries" className="py-16 px-6 bg-gray-50 dark:bg-gray-900">
           <div className="container mx-auto">
             <div className="text-center max-w-2xl mx-auto mb-10">
               <h2 className="text-3xl md:text-4xl font-bold mb-4">Explore Software Libraries</h2>
               <p className="text-lg text-muted-foreground">Browse through admin-added software libraries.</p>
             </div>
-
             <div className="flex flex-col md:flex-row justify-between items-center gap-4 mb-6">
-              <input
-                type="text"
-                placeholder="Search libraries..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="border border-gray-300 dark:border-gray-700 px-4 py-2 rounded-md w-full md:w-1/2"
-              />
+              <input type="text" placeholder="Search libraries..." value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} className="border border-gray-300 dark:border-gray-700 px-4 py-2 rounded-md w-full md:w-1/2" />
               <div className="flex gap-4 flex-wrap md:flex-nowrap items-end">
                 <div className="flex flex-col items-start">
                   <label className="text-sm font-medium mb-1">Filter: Category</label>
-                  <select
-                    value={categoryFilter}
-                    onChange={(e) => setCategoryFilter(e.target.value)}
-                    className="border border-gray-300 dark:border-gray-700 px-4 py-2 rounded-md"
-                  >
+                  <select value={categoryFilter} onChange={(e) => setCategoryFilter(e.target.value)} className="border border-gray-300 dark:border-gray-700 px-4 py-2 rounded-md">
                     <option value="">All Categories ({libraries.length})</option>
                     {Object.entries(categoryCounts).map(([cat, count]) => (
                       <option key={cat} value={cat}>{cat} ({count})</option>
@@ -181,11 +161,7 @@ const Index = () => {
                 </div>
                 <div className="flex flex-col items-start">
                   <label className="text-sm font-medium mb-1">Sort:</label>
-                  <select
-                    value={sortBy}
-                    onChange={(e) => setSortBy(e.target.value)}
-                    className="border border-gray-300 dark:border-gray-700 px-4 py-2 rounded-md"
-                  >
+                  <select value={sortBy} onChange={(e) => setSortBy(e.target.value)} className="border border-gray-300 dark:border-gray-700 px-4 py-2 rounded-md">
                     <option value="">All</option>
                     <option value="recent">Recently Updated</option>
                     <option value="stars">Top Rated</option>
@@ -199,29 +175,30 @@ const Index = () => {
             </div>
 
             {isAuthenticated && selectedLibraries.length > 0 && (
-              <div className="mb-8 p-4 bg-blue-50 dark:bg-blue-900/20 rounded-lg flex flex-col sm:flex-row justify-between items-center gap-4">
-                <div>
-                  <h3 className="font-medium">
-                    {selectedLibraries.length} library{selectedLibraries.length > 1 ? 'ies' : ''} selected
-                  </h3>
-                </div>
-                <div className="flex gap-3 items-center">
-                  <Button
-                    variant="outline"
-                    onClick={() => {
-                      if (selectedLibraries.length === 2) {
+              <div id="action-bar" className="mb-6 flex flex-col sm:flex-row justify-between items-center gap-4">
+                {selectedLibraries.length === 1 && (
+                  <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                    <AlertCircle className="h-4 w-4" />
+                    <span className="text-base">Select one more library to enable comparison.</span>
+                  </div>
+                )}
+                <div className="flex gap-3 ml-auto">
+                  {selectedLibraries.length === 2 && (
+                    <Button
+                      variant="outline"
+                      onClick={() => {
                         sessionStorage.setItem("comparedLibraries", JSON.stringify(selectedLibraries));
                         navigate("/comparison");
-                      }
-                    }}
-                    className={selectedLibraries.length === 2 ? "border-black text-black" : "opacity-50"}
-                  >
-                    Compare
-                  </Button>
-                  <Button onClick={() => setShowProjectPicker(true)}>
+                      }}
+                      className="border border-black text-black"
+                    >
+                      Compare
+                    </Button>
+                  )}
+                  <Button onClick={() => setShowProjectPicker(true)} className="bg-[#3B82F6] text-white hover:bg-[#2563EB]">
                     Add {selectedLibraries.length} {selectedLibraries.length === 1 ? 'Library' : 'Libraries'} to Project
                   </Button>
-                  <Button variant="ghost" onClick={() => setSelectedLibraries([])}>
+                  <Button variant="ghost" onClick={() => { setSelectedLibraries([]); setShowProjectPicker(false); }}>
                     Clear
                   </Button>
                 </div>

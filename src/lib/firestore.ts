@@ -42,6 +42,20 @@ export const fetchAllLibraries = async (): Promise<Library[]> => {
   })) as Library[];
 };
 
+export const getUserByEmail = async (email: string): Promise<FirestoreUser | null> => {
+  const snapshot = await getDocs(collection(db, "users"));
+  const lowerEmail = email.toLowerCase();
+
+  for (const docSnap of snapshot.docs) {
+    const data = docSnap.data() as FirestoreUser;
+    if (data.email.toLowerCase() === lowerEmail) {
+      return data;
+    }
+  }
+
+  return null;
+};
+
 export const fetchLibraryById = async (id: string): Promise<Library | null> => {
   const docRef = doc(db, "libraries", id);
   const docSnap = await getDoc(docRef);
@@ -92,7 +106,10 @@ export const removeFavorite = async (userId: string, libraryId: string): Promise
 
 export const getFavoriteLibraryIds = async (userId: string): Promise<string[]> => {
   const snapshot = await getDocs(collection(db, "users", userId, "favorites"));
-  return snapshot.docs.map(doc => doc.id);
+  if (!snapshot.empty) {
+    return snapshot.docs.map(doc => doc.id);
+  }
+  return [];
 };
 
 export const getAllFavorites = async (userId: string): Promise<Library[]> => {
@@ -169,7 +186,7 @@ export const deleteLibraryFromProject = async (
 ): Promise<void> => {
   const projectRef = doc(db, "users", userId, "projects", projectId);
   await updateDoc(projectRef, {
-    libraries: arrayRemove(libId),  // Remove the library from the project's libraries list
+    libraries: arrayRemove(libId),
   });
 };
 
@@ -195,5 +212,31 @@ type UserProject = {
 
 export const getProjects = async (userId: string): Promise<UserProject[]> => {
   const snapshot = await getDocs(collection(db, "users", userId, "projects"));
-  return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })) as UserProject[];
+  return snapshot.docs.map(doc => {
+    const data = doc.data();
+    return {
+      id: doc.id,
+      name: data.name,
+      createdAt: data.createdAt ?? null,
+      libraries: Array.isArray(data.libraries) ? data.libraries : [],
+    };
+  }) as UserProject[];
+};
+
+// ✅ Fetch libraries NOT in the current project
+export const fetchLibrariesNotInProject = async (
+  userId: string,
+  projectId: string
+): Promise<Library[]> => {
+  const allLibraries = await fetchAllLibraries();
+
+  const projectRef = doc(db, `users/${userId}/projects`, projectId);
+  const projectSnap = await getDoc(projectRef);
+
+  if (!projectSnap.exists()) return allLibraries;
+
+  const projectData = projectSnap.data();
+  const addedIds: string[] = projectData.libraries || [];
+
+  return allLibraries.filter((lib) => !addedIds.includes(lib.id!));
 };

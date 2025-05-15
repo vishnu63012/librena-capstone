@@ -26,7 +26,8 @@ import { cn } from "@/lib/utils";
 export const Navbar = () => {
   const [isScrolled, setIsScrolled] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
-  const { user, logout } = useAuth();
+
+  const { user, logout, loading } = useAuth(); 
   const isAuthenticated = !!user;
   const { toast } = useToast();
   const navigate = useNavigate();
@@ -36,6 +37,8 @@ export const Navbar = () => {
     window.addEventListener("scroll", handleScroll);
     return () => window.removeEventListener("scroll", handleScroll);
   }, []);
+
+  if (loading) return null; 
 
   return (
     <header
@@ -105,14 +108,16 @@ export const Navbar = () => {
             {isAuthenticated ? (
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
-                  <Button variant="ghost" size="sm" className="h-9">
-                    <User size={16} className="mr-2" />
-                    {user?.firstName}
+                  <Button variant="ghost" size="sm" className="h-9 flex items-center">
+                    <span className="flex items-center gap-1">
+                      <User size={16} />
+                      {user?.firstName}
+                    </span>
                   </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent>
                   <DropdownMenuItem onClick={() => navigate("/profile")}>
-                    Profile
+                    My Account
                   </DropdownMenuItem>
                   <DropdownMenuItem onClick={logout}>
                     <LogOut size={16} className="mr-2" />
@@ -200,7 +205,7 @@ export const Navbar = () => {
                     onClick={() => navigate("/profile")}
                   >
                     <User size={16} className="mr-2" />
-                    Profile
+                    My Account
                   </Button>
                   <Button
                     variant="ghost"

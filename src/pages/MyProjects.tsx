@@ -21,11 +21,11 @@ type UserProject = {
   id: string;
   name: string;
   libraries: string[];
-  createdAt?: unknown;
+  createdAt?: any;
 };
 
 const MyProjects = () => {
-  const { user } = useAuth();
+  const { user, loading } = useAuth();
   const navigate = useNavigate();
   const [projects, setProjects] = useState<UserProject[]>([]);
   const [librariesByProject, setLibrariesByProject] = useState<Record<string, Library[]>>({});
@@ -36,7 +36,8 @@ const MyProjects = () => {
 
   useEffect(() => {
     const loadProjectsAndLibraries = async () => {
-      if (!user) return;
+      if (!user || loading) return;
+
       const userProjects = await getProjects(user.uid);
       setProjects(userProjects);
 
@@ -54,7 +55,7 @@ const MyProjects = () => {
     };
 
     loadProjectsAndLibraries();
-  }, [user]);
+  }, [user, loading]);
 
   const handleAddLibraries = (projectId: string) => {
     navigate(`/add-libraries/${projectId}`);
@@ -68,11 +69,29 @@ const MyProjects = () => {
 
   const handleExportPDF = (project: UserProject) => {
     const doc = new jsPDF();
-    doc.text(`Project: ${project.name}`, 10, 10);
     const libs = librariesByProject[project.id] || [];
-    libs.forEach((lib, i) => {
-      doc.text(`• ${lib.name} - ${lib.description || 'No description'}`, 10, 20 + i * 10);
+
+    doc.setFontSize(16);
+    doc.text(`Project: ${project.name}`, 10, 10);
+
+    let y = 20;
+
+    libs.forEach((lib, index) => {
+      if (y > 280) {
+        doc.addPage();
+        y = 20;
+      }
+
+      doc.setFontSize(12);
+      doc.text(`Library ${index + 1}: ${lib.name}`, 10, y);
+      y += 7;
+
+      const desc = lib.description ? lib.description.slice(0, 300) : "No description";
+      const lines = doc.splitTextToSize(`Description: ${desc}`, 180);
+      doc.text(lines, 10, y);
+      y += lines.length * 6 + 4;
     });
+
     doc.save(`${project.name}-libraries.pdf`);
   };
 
@@ -119,7 +138,7 @@ const MyProjects = () => {
   return (
     <div className="flex flex-col min-h-screen">
       <Navbar />
-      <main className="flex-grow container mx-auto px-4 py-10 pt-24"> {/* Fixes navbar overlap */}
+      <main className="flex-grow container mx-auto px-4 py-10 pt-24">
         <h1 className="text-3xl font-bold mb-6">My Projects</h1>
 
         {projects.length === 0 ? (
@@ -135,7 +154,12 @@ const MyProjects = () => {
                 </div>
               ) : (
                 <div className="flex items-center justify-between mb-3 flex-wrap">
-                  <h2 className="text-xl font-semibold">{project.name}</h2>
+                  <h2 className="text-xl font-semibold">
+                    {project.name}{" "}
+                    <span className="text-sm font-normal text-muted-foreground">
+                      ({librariesByProject[project.id]?.length || 0} libraries)
+                    </span>
+                  </h2>
                   <div className="flex gap-2 flex-wrap">
                     <Button size="sm" variant="ghost" onClick={() => {
                       setRenamingProjectId(project.id);
@@ -143,13 +167,13 @@ const MyProjects = () => {
                     }}>
                       <Pencil className="w-4 h-4" />
                     </Button>
-                    <Button size="sm" variant="default" onClick={() => {
+                    <Button size="sm" className="bg-white text-black border border-gray-300 hover:bg-gray-100" onClick={() => {
                       setSelectedProjectId(project.id);
                       setSelectedLibraries([]);
                     }}>
                       View
                     </Button>
-                    <Button size="sm" onClick={() => handleAddLibraries(project.id)}>
+                    <Button size="sm" className="bg-[#3B82F6] text-white hover:bg-[#2563EB]" onClick={() => handleAddLibraries(project.id)}>
                       <Plus className="mr-2 h-4 w-4" /> Add More Libraries
                     </Button>
                     <Button size="sm" variant="secondary" onClick={() => handleExportPDF(project)}>
@@ -164,6 +188,14 @@ const MyProjects = () => {
 
               {selectedProjectId === project.id && (
                 <>
+                  <Button
+                    variant="ghost"
+                    className="mb-4"
+                    onClick={() => setSelectedProjectId(null)}
+                  >
+                    ← Back to All Projects
+                  </Button>
+
                   <div className="flex justify-end gap-4 mb-4">
                     {selectedLibraries.length === 2 && (
                       <Button variant="outline" onClick={handleCompare}>
@@ -171,7 +203,7 @@ const MyProjects = () => {
                       </Button>
                     )}
                     {selectedLibraries.length > 0 && (
-                      <Button variant="default" onClick={handleDeleteLibraries}>
+                      <Button className="bg-[#3B82F6] text-white hover:bg-[#2563EB]" onClick={handleDeleteLibraries}>
                         Delete {selectedLibraries.length} Libraries
                       </Button>
                     )}

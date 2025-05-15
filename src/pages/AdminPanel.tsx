@@ -13,11 +13,16 @@ import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Home } from "lucide-react";
 
+import { toast } from "sonner"; 
+
+
+
 const CATEGORY_OPTIONS = [
   "Frontend", "Backend", "Database", "Analytics",
   "Authentication", "Testing", "Deployment", "DevOps",
   "AI/ML", "Utilities", "UI"
 ];
+
 
 const AdminPanel = () => {
   const [libraries, setLibraries] = useState<Library[]>([]);
@@ -30,6 +35,7 @@ const AdminPanel = () => {
   const [sortOption, setSortOption] = useState("Default");
   const [jsonFile, setJsonFile] = useState<File | null>(null);
   const [uploadCount, setUploadCount] = useState(0);
+  
 
   const fetchLibraries = async () => {
     const snap = await getDocs(collection(db, "libraries"));
@@ -51,37 +57,59 @@ const AdminPanel = () => {
 
   const handleSave = async () => {
     if (!form.name || !form.category || !form.cost || !form.os) {
-      alert("Fill required fields");
+      toast.error("Please fill all required fields.");
       return;
     }
-
+  
     try {
       if (editId) {
-        await updateDoc(doc(db, "libraries", editId), { ...form, updatedAt: serverTimestamp() });
+        await updateDoc(doc(db, "libraries", editId), {
+          ...form,
+          updatedAt: serverTimestamp(),
+        });
+        toast.success(`Library "${form.name}" updated successfully.`);
         setEditId(null);
-        alert("Library updated!");
       } else {
-        await addDoc(collection(db, "libraries"), { ...form, createdAt: serverTimestamp() });
-        alert("Library added!");
+        await addDoc(collection(db, "libraries"), {
+          ...form,
+          createdAt: serverTimestamp(),
+        });
+        toast.success(`Library "${form.name}" added successfully.`);
       }
-      fetchLibraries();
-      setForm({});
-    } catch {
-      alert("Error saving.");
+  
+      setForm({});          
+      fetchLibraries();     
+    } catch (error) {
+      console.error(error);
+      toast.error("An error occurred while saving the library.");
     }
   };
-
+  
   const handleDelete = async (id: string) => {
-    await deleteDoc(doc(db, "libraries", id));
-    fetchLibraries();
+    try {
+      await deleteDoc(doc(db, "libraries", id));
+      toast.success("Library deleted successfully.");
+      fetchLibraries();
+    } catch (err) {
+      console.error(err);
+      toast.error("Failed to delete the library.");
+    }
   };
-
+  
+  
   const handleBulkDelete = async () => {
-    await Promise.all(selectedIds.map(id => deleteDoc(doc(db, "libraries", id))));
-    setSelectedIds([]);
-    fetchLibraries();
+    try {
+      await Promise.all(selectedIds.map(id => deleteDoc(doc(db, "libraries", id))));
+      toast.success(`${selectedIds.length} libraries deleted successfully.`);
+      setSelectedIds([]);
+      fetchLibraries();
+    } catch (err) {
+      console.error(err);
+      toast.error("Failed to delete selected libraries.");
+    }
   };
-
+  
+  
   const toggleSelect = (id: string) => {
     setSelectedIds((prev) =>
       prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]
@@ -153,18 +181,41 @@ const AdminPanel = () => {
       categoryCounts[lib.category] = (categoryCounts[lib.category] || 0) + 1;
     }
   });
+  const handleManualSync = async () => {
+    try {
+      const response = await fetch("https://us-central1-softlib-1b4db.cloudfunctions.net/triggerGitHubSync", {
+        method: "POST",
+      });
+      const result = await response.json();
+      alert(`Sync complete: ${result.message}`);
+    } catch (error) {
+      console.error("Sync error:", error);
+      alert("Sync failed. See console for details.");
+    }
+  };
+  
+  
 
   return (
-    <div className="min-h-screen p-8 bg-white">
-      <header className="flex justify-between mb-6">
-        <h1 className="text-2xl font-bold">Admin Dashboard</h1>
-        <a href="/" className="flex items-center gap-1 text-blue-600 font-semibold">
-          <Home size={18} /> Home
-        </a>
-      </header>
+    <div className="min-h-screen pt-24 p-8 bg-white">
+
+<header className="mb-6 text-center">
+  <h1 className="text-3xl font-bold text-gray-800">Admin Dashboard</h1>
+</header>
+
 
       <div className="flex justify-center gap-4 mb-6">
-        <Button className="bg-[#3B82F6] text-white hover:bg-[#2563EB]" onClick={() => setView("add")}>Add New Library</Button>
+      <Button
+  className="bg-[#3B82F6] text-white hover:bg-[#2563EB]"
+  onClick={() => {
+    setView("add");
+    setForm({});         
+    setEditId(null);    
+  }}
+>
+  Add New Library
+</Button>
+
         <Button className="bg-[#3B82F6] text-white hover:bg-[#2563EB]" onClick={() => setView("manage")}>Manage Libraries</Button>
         <Button className="bg-[#3B82F6] text-white hover:bg-[#2563EB]" onClick={() => setView("upload")}>Upload JSON File</Button>
       </div>

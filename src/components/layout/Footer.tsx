@@ -3,10 +3,7 @@ import { Link } from 'react-router-dom';
 import { Mail, Phone, MapPin } from 'lucide-react';
 
 export const Footer = () => {
-  // Function to handle scrolling to top when clicking legal links
-  const scrollToTop = () => {
-    window.scrollTo(0, 0);
-  };
+  const scrollToTop = () => window.scrollTo(0, 0);
 
   return (
     <footer className="bg-gray-50 dark:bg-theme-dark border-t border-gray-200 dark:border-gray-800">
@@ -31,16 +28,6 @@ export const Footer = () => {
                 <Link to="/about" className="text-muted-foreground hover:text-primary transition-colors">
                   About Us
                 </Link>
-              </li>
-              <li>
-                <Link to="/comparison" className="text-muted-foreground hover:text-primary transition-colors">
-                  Compare Libraries
-                </Link>
-              </li>
-              <li>
-                <a href="#features" className="text-muted-foreground hover:text-primary transition-colors">
-                  Features
-                </a>
               </li>
             </ul>
 
@@ -100,26 +87,6 @@ export const Footer = () => {
                   <p>vishnuvarma63012@gmail.com</p>
                 </div>
               </div>
-            </div>
-
-            <div className="pt-4">
-              <h3 className="text-lg font-medium">Subscribe</h3>
-              <p className="text-sm text-muted-foreground py-2">
-                Stay updated with our latest news and updates.
-              </p>
-              <form className="flex mt-2">
-                <input
-                  type="email"
-                  placeholder="Enter your email"
-                  className="flex-1 px-4 py-2 text-sm border border-gray-300 rounded-l-md focus:outline-none focus:ring-1 focus:ring-primary"
-                />
-                <button 
-                  type="submit"
-                  className="px-4 py-2 text-sm bg-primary text-primary-foreground rounded-r-md hover:bg-primary/90 transition-colors"
-                >
-                  Subscribe
-                </button>
-              </form>
             </div>
           </div>
         </div>

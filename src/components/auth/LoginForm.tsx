@@ -22,7 +22,7 @@ export const LoginForm = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const { login } = useAuth();
+  const { login, loginWithGoogle } = useAuth();
   const navigate = useNavigate();
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -30,7 +30,7 @@ export const LoginForm = () => {
     setError(null);
 
     if (!email || !password) {
-      setError('Please enter both email/username and password.');
+      setError('Please enter both email and password.');
       return;
     }
 
@@ -42,22 +42,19 @@ export const LoginForm = () => {
         navigate('/');
       }
     } catch (err: unknown) {
-      if (
-        typeof err === 'object' &&
-        err !== null &&
-        'code' in err
-      ) {
-        const code = (err as { code: string }).code;
-
-        if (code === 'auth/user-not-found') {
-          setError('Account not found. Please sign up.');
-          setTimeout(() => {
-            navigate('/register');
-          }, 2000);
-        } else if (code === 'auth/wrong-password') {
-          setError('Wrong email or password.');
-        } else {
-          setError('Login failed. Please try again.');
+      if (err instanceof Error) {
+        switch (err.message) {
+          case 'user-not-found':
+            setError('Account does not exist. Please sign up.');
+            setTimeout(() => navigate('/register'), 3000);
+            break;
+          case 'wrong-password':
+          case 'invalid-credentials':
+          case 'login-failed':
+            setError('Invalid email or password.');
+            break;
+          default:
+            setError('An unexpected error occurred. Please try again.');
         }
       } else {
         setError('An unexpected error occurred.');
@@ -67,11 +64,24 @@ export const LoginForm = () => {
     }
   };
 
+  const handleGoogleLogin = async () => {
+    setError(null);
+    setIsLoading(true);
+    const success = await loginWithGoogle();
+    if (success) {
+      navigate('/');
+    } else {
+      setError('Google sign-in failed. Please try again.');
+    }
+    setIsLoading(false);
+  };
+
   return (
     <Card className="w-full max-w-md mx-auto glass-card">
       <CardHeader>
         <CardTitle className="text-center text-2xl">Sign in to Librena</CardTitle>
       </CardHeader>
+
       <CardContent>
         {error && (
           <Alert variant="destructive" className="mb-4">
@@ -81,9 +91,7 @@ export const LoginForm = () => {
 
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="space-y-2">
-            <label htmlFor="email" className="text-sm font-medium">
-              Email or Username
-            </label>
+            <label htmlFor="email" className="text-sm font-medium">Email or Username</label>
             <Input
               id="email"
               type="text"
@@ -97,9 +105,7 @@ export const LoginForm = () => {
 
           <div className="space-y-2">
             <div className="flex items-center justify-between">
-              <label htmlFor="password" className="text-sm font-medium">
-                Password
-              </label>
+              <label htmlFor="password" className="text-sm font-medium">Password</label>
               <Link
                 to="/forgot-password"
                 className="text-sm text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300"
@@ -133,10 +139,7 @@ export const LoginForm = () => {
               checked={rememberMe}
               onCheckedChange={(checked) => setRememberMe(checked as boolean)}
             />
-            <label
-              htmlFor="remember"
-              className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
-            >
+            <label htmlFor="remember" className="text-sm font-medium">
               Remember me
             </label>
           </div>
@@ -149,8 +152,24 @@ export const LoginForm = () => {
             {isLoading ? 'Signing in...' : 'Sign in'}
           </Button>
 
+          <Button
+            type="button"
+            onClick={handleGoogleLogin}
+            disabled={isLoading}
+            className="w-full mt-2 bg-white text-black border border-gray-300 hover:bg-gray-100 flex items-center justify-center gap-2"
+          >
+            <img
+              src="https://developers.google.com/identity/images/g-logo.png"
+              alt="Google logo"
+              className="w-5 h-5"
+            />
+            {isLoading ? 'Signing in with Google...' : 'Sign in with Google'}
+          </Button>
+
+          
+
           <div className="mt-4 text-center text-sm">
-            Don't have an account?{' '}
+            Don’t have an account?{' '}
             <Link
               to="/register"
               className="text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300"
@@ -160,18 +179,8 @@ export const LoginForm = () => {
           </div>
         </form>
       </CardContent>
-      <CardFooter className="flex justify-center border-t px-6 py-4">
-        <p className="text-xs text-muted-foreground text-center">
-          By signing in, you agree to our{' '}
-          <Link to="/terms" className="underline underline-offset-2 hover:text-primary">
-            Terms of Service
-          </Link>{' '}
-          and{' '}
-          <Link to="/privacy" className="underline underline-offset-2 hover:text-primary">
-            Privacy Policy
-          </Link>.
-        </p>
-      </CardFooter>
+
+      <CardFooter />
     </Card>
   );
 };

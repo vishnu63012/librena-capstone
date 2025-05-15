@@ -2,30 +2,46 @@ import React, { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { fetchAllLibraries, addLibraryToProject } from "@/lib/firestore";
+import {
+  fetchLibrariesNotInProject,
+  addLibraryToProject,
+  addFavorite,
+  removeFavorite,
+  getFavoriteLibraryIds,
+} from "@/lib/firestore";
 import { useAuth } from "@/context/AuthContext";
-import { toast } from "@/components/ui/use-toast";
-import { ChevronUp, ArrowLeft } from "lucide-react";
+import { toast } from "sonner";
+import { ChevronUp, ArrowLeft, AlertCircle } from "lucide-react";
 import { LibraryCard } from "@/components/ui/LibraryCard";
 import { Library } from "@/lib/type";
+import { Timestamp } from "firebase/firestore";
 
 const AddLibraries = () => {
   const [libraries, setLibraries] = useState<Library[]>([]);
   const [filteredLibraries, setFilteredLibraries] = useState<Library[]>([]);
   const [selected, setSelected] = useState<Library[]>([]);
+  const [wishlist, setWishlist] = useState<string[]>([]);
   const [search, setSearch] = useState("");
   const [sort, setSort] = useState("");
   const [category, setCategory] = useState("");
   const [categoryCounts, setCategoryCounts] = useState<{ [key: string]: number }>({});
   const [showScrollButton, setShowScrollButton] = useState(false);
 
-  const { user } = useAuth();
+  const { user, loading } = useAuth();
   const { projectId } = useParams<{ projectId: string }>();
   const navigate = useNavigate();
 
+  const getTime = (value: string | Timestamp | undefined): number => {
+    if (!value) return 0;
+    if (typeof value === "string") return new Date(value).getTime();
+    if ("toDate" in value) return value.toDate().getTime();
+    return 0;
+  };
+
   useEffect(() => {
     const fetchData = async () => {
-      const libs = await fetchAllLibraries();
+      if (!user || !projectId || loading) return;
+      const libs = await fetchLibrariesNotInProject(user.uid, projectId);
       setLibraries(libs);
       setFilteredLibraries(libs);
 
@@ -36,8 +52,17 @@ const AddLibraries = () => {
       }
       setCategoryCounts(counts);
     };
+
+    const fetchWishlist = async () => {
+      if (user) {
+        const favIds = await getFavoriteLibraryIds(user.uid);
+        setWishlist(favIds);
+      }
+    };
+
     fetchData();
-  }, []);
+    fetchWishlist();
+  }, [user, projectId, loading]);
 
   useEffect(() => {
     const handleScroll = () => setShowScrollButton(window.scrollY > 400);
@@ -57,8 +82,8 @@ const AddLibraries = () => {
     });
 
     results.sort((a, b) => {
-      const aDate = new Date(a.last_updated || "").getTime();
-      const bDate = new Date(b.last_updated || "").getTime();
+      const aDate = getTime(a.last_updated);
+      const bDate = getTime(b.last_updated);
       const aStars = parseInt(a.stars || "0");
       const bStars = parseInt(b.stars || "0");
       const aSize = parseFloat(a.size || "0");
@@ -83,17 +108,26 @@ const AddLibraries = () => {
     });
   };
 
+  const toggleWishlist = async (libId: string) => {
+    if (!user) return;
+    const isFav = wishlist.includes(libId);
+    if (isFav) {
+      await removeFavorite(user.uid, libId);
+      setWishlist(wishlist.filter((id) => id !== libId));
+    } else {
+      await addFavorite(user.uid, libId);
+      setWishlist([...wishlist, libId]);
+    }
+  };
+
   const handleAddToProject = async () => {
     if (!user || !projectId || selected.length === 0) return;
     const promises = selected.map((lib) =>
       addLibraryToProject(user.uid, projectId, lib.id!)
     );
     await Promise.all(promises);
-    toast({
-      title: "✅ Libraries Added",
-      description: `${selected.length} libraries added to the project.`,
-    });
-    setLibraries((prev) => prev.filter((lib) => !selected.find((s) => s.id === lib.id)));
+
+    toast(`${selected.length} libraries added to the project successfully.`);
     setSelected([]);
     navigate("/projects");
   };
@@ -113,29 +147,9 @@ const AddLibraries = () => {
           <ArrowLeft className="mr-2 h-4 w-4" /> Back to My Projects
         </Button>
 
-        <div className="mb-6 flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
-          <h1 className="text-3xl font-bold">Add Libraries to Project</h1>
-          <div className="fixed top-24 right-6 z-50 flex gap-2">
-            {selected.length === 2 && (
-              <Button
-                variant="outline"
-                onClick={handleCompare}
-                className="border border-black text-black"
-              >
-                Compare
-              </Button>
-            )}
-            <Button
-              disabled={selected.length === 0}
-              onClick={handleAddToProject}
-              className="bg-black text-white"
-            >
-              Add {selected.length} to Project
-            </Button>
-          </div>
-        </div>
+        <h1 className="text-3xl font-bold mb-6">Add Libraries to Project</h1>
 
-        <div className="flex flex-wrap items-end gap-4 mb-6">
+        <div className="flex flex-wrap items-end gap-4 mb-4">
           <Input
             type="text"
             placeholder="Search libraries..."
@@ -176,6 +190,39 @@ const AddLibraries = () => {
           </div>
         </div>
 
+        {selected.length > 0 && (
+          <div className="flex flex-col sm:flex-row justify-between items-center gap-4 mb-6">
+            {selected.length === 1 && (
+              <div className="flex items-center gap-2 text-base font-medium text-muted-foreground w-full sm:w-auto">
+                <AlertCircle className="h-5 w-5" />
+                Select one more library to enable comparison.
+              </div>
+            )}
+
+            <div className="flex gap-3 ml-auto">
+              {selected.length === 2 && (
+                <Button
+                  variant="outline"
+                  onClick={handleCompare}
+                  className="border border-black text-black"
+                >
+                  Compare
+                </Button>
+              )}
+              <Button
+                disabled={selected.length === 0}
+                onClick={handleAddToProject}
+                className="bg-[#3B82F6] text-white hover:bg-[#2563EB]"
+              >
+                Add {selected.length} to Project
+              </Button>
+              <Button variant="ghost" onClick={() => setSelected([])}>
+                Clear
+              </Button>
+            </div>
+          </div>
+        )}
+
         {filteredLibraries.length === 0 ? (
           <p className="text-muted-foreground">No libraries found.</p>
         ) : (
@@ -188,6 +235,8 @@ const AddLibraries = () => {
                 onSelect={toggleSelect}
                 context="add"
                 viewOnly={false}
+                isFavorite={wishlist.includes(lib.id)}
+                onToggleFavorite={() => toggleWishlist(lib.id)}
               />
             ))}
           </div>

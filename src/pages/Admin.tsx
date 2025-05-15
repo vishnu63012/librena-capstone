@@ -2,7 +2,7 @@ import React, { useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Navbar } from "@/components/layout/Navbar";
 import { Footer } from "@/components/layout/Footer";
-import AdminPanel from "@/pages/AdminPanel"; // ✅ absolute path
+import AdminPanel from "@/pages/AdminPanel"; 
 import { useAuth } from "@/context/AuthContext";
 import { useToast } from "@/hooks/use-toast";
 
@@ -31,7 +31,7 @@ const Admin = () => {
   }
 
   if (!user?.isAdmin) {
-    return null; // Redirect will happen, but don't show white screen
+    return null; 
   }
 
   return (
@@ -43,4 +43,4 @@ const Admin = () => {
   );
 };
 
-export default AdminPanel;
+export default Admin;

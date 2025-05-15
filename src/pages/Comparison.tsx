@@ -95,7 +95,7 @@ const Comparison = () => {
         label: "Size (MB)",
         data: libraries.map((lib) => {
           const size = parseFloat(lib.size?.replace("MB", "") || "0");
-          return size < 1 ? 0.5 : size; // show at least 0.5 for visibility
+          return size < 1 ? 0.5 : size; 
         }),
         backgroundColor: "rgba(255, 99, 132, 0.6)",
       },
@@ -149,32 +149,22 @@ const Comparison = () => {
         <h1 className="text-3xl font-bold mb-6">Library Comparison</h1>
 
         {/* 📊 Table */}
-        <div className="overflow-x-auto mb-10">
-          <table className="min-w-full border text-sm bg-white border-gray-300">
-            <thead className="bg-gray-100">
-              <tr>
-                <th className="border px-4 py-2 text-left">Field</th>
-                {libraries.map((lib) => (
-                  <th key={lib.id} className="border px-4 py-2">{lib.name}</th>
-                ))}
-              </tr>
-            </thead>
-            <tbody>
-              {fields.map((field) => (
-                <tr key={field}>
-                  <td className="border px-4 py-2 font-medium">{field}</td>
-                  {libraries.map((lib) => (
-                    <td key={lib.id} className="border px-4 py-2">
-                      {Array.isArray(lib[field])
-                        ? (lib[field] as string[]).join(", ")
-                        : (lib[field] as string) ?? "N/A"}
-                    </td>
-                  ))}
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+       {/* 📊 Card-Based Comparison Layout */}
+<div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-10">
+  {libraries.map((lib) => (
+    <div key={lib.id} className="bg-white border rounded-lg shadow p-6 space-y-3">
+      <h2 className="text-xl font-bold text-blue-600">{lib.name}</h2>
+      <div><strong>Description:</strong> {lib.description}</div>
+      <div><strong>Category:</strong> {lib.category}</div>
+      <div><strong>License:</strong> {lib.license}</div>
+      <div><strong>Cost:</strong> {lib.cost}</div>
+      <div><strong>Size:</strong> {lib.size}</div>
+      <div><strong>Stars:</strong> {lib.stars}</div>
+      <div><strong>Tags:</strong> {Array.isArray(lib.tags) ? lib.tags.join(', ') : lib.tags}</div>
+    </div>
+  ))}
+</div>
+
 
         {/* 🎛️ Chart Toggle */}
         <div className="flex gap-4 mb-6">

@@ -27,7 +27,8 @@ const LibraryDetails = () => {
   const [library, setLibrary] = useState<Library | null>(null);
   const [projects, setProjects] = useState<{ id: string; name: string }[]>([]);
   const [selectedProjectId, setSelectedProjectId] = useState<string | null>(null);
-  const { user } = useAuth();
+  const { user, loading } = useAuth(); 
+
   const { toast } = useToast();
 
   const isInsideProject =
@@ -39,13 +40,15 @@ const LibraryDetails = () => {
       const libData = await fetchLibraryById(id);
       setLibrary(libData);
 
-      if (user && !isInsideProject) {
+      if (user && !isInsideProject && !loading) { 
+
         const userProjects = await getProjects(user.uid);
         setProjects(userProjects);
       }
     };
     load();
-  }, [id, user, isInsideProject]);
+  }, [id, user, isInsideProject, loading]); 
+
 
   const handleAddToWishlist = async () => {
     if (!user || !library) return;

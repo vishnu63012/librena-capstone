@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { Check, Star, ArrowUpRight, Calendar, Heart } from 'lucide-react';
 import { Card, CardContent, CardFooter, CardHeader } from '@/components/ui/card';
@@ -8,16 +9,16 @@ import { Library } from '@/lib/type';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/context/AuthContext';
+import { Timestamp } from 'firebase/firestore';
 
-function formatDate(date: unknown): string {
+function formatDate(date: string | Timestamp | undefined): string {
   try {
-    if (date instanceof Date) return date.toLocaleDateString();
-    if (typeof date === 'object' && date !== null && 'toDate' in date) {
-      return (date as { toDate: () => Date }).toDate().toLocaleDateString();
-    }
-    return 'N/A';
+    if (!date) return "N/A";
+    if (typeof date === "string") return new Date(date).toLocaleDateString();
+    if ("toDate" in date) return date.toDate().toLocaleDateString();
+    return "N/A";
   } catch {
-    return 'N/A';
+    return "N/A";
   }
 }
 
@@ -73,10 +74,10 @@ export const LibraryCard: React.FC<LibraryCardProps> = ({
               <Badge variant="outline" className="text-xs">v{library.version}</Badge>
             </div>
             <div className="flex items-center text-muted-foreground text-sm mt-1">
-              {library.lastUpdated && (
+              {library.last_updated && (
                 <>
                   <Calendar className="h-3 w-3 mr-1" />
-                  <span>Updated on {formatDate(library.lastUpdated)}</span>
+                  <span>Updated on {formatDate(library.last_updated)}</span>
                   <span className="mx-2">•</span>
                 </>
               )}
@@ -88,6 +89,7 @@ export const LibraryCard: React.FC<LibraryCardProps> = ({
               )}
             </div>
           </div>
+
           <div className="flex flex-col gap-2 items-end">
             {isAuthenticated && (
               <Checkbox
@@ -97,7 +99,7 @@ export const LibraryCard: React.FC<LibraryCardProps> = ({
                 disabled={viewOnly}
               />
             )}
-            {onToggleFavorite && (
+            {isAuthenticated && onToggleFavorite && (
               <button
                 onClick={() => onToggleFavorite(library)}
                 title="Favorite"
