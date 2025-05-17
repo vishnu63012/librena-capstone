@@ -110,6 +110,9 @@ src/
 This project is a **UMBC Graduate Capstone** project submitted by **Pavan Vishnu Varma Namburi** for the MPS in Software Engineering program.
 
 ---
+## Admin Login Details
+Email id : Admin@gmail.com
+Password: Admin@123
 
 ## 📩 Contact
 
